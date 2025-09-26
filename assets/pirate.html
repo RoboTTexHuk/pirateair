@@ -1,0 +1,858 @@
+<!DOCTYPE html><html lang="ru"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Pirate Lair - Party Planner</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          screens: {
+            xs: '360px',
+            ip: '768px',
+            ipad: '834px',
+            'ipad-pro': '1024px'
+          },
+          colors: {
+            'pirate-dark': '#121212',
+            'pirate-dark-secondary': '#1E1E1E',
+            'pirate-gold': '#E58A2D',
+            'pirate-gold-light': '#FBBF24',
+            'pirate-text': '#FFFFFF',
+            'pirate-text-muted': '#E5E7EB'
+          },
+          fontFamily: { pirate: ['IM Fell English SC','serif'] },
+          boxShadow: {
+            'inner-gold': 'inset 0 0 0 1px rgba(229,138,45,0.35), inset 0 1px 2px rgba(0,0,0,0.25)'
+          },
+          maxWidth: { iphone: '430px' }
+        }
+      }
+    }
+  </script>
+
+  <!-- Fonts + Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;family=IM+Fell+English+SC&amp;display=swap">
+  <script>window.FontAwesomeConfig = { autoReplaceSvg: 'nest' };</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous"></script>
+
+  <style>
+    :root{ color-scheme: dark; }
+    ::-webkit-scrollbar{display:none}
+    html,body{-ms-overflow-style:none;scrollbar-width:none}
+    body{font-family:'Inter',sans-serif;color:#fff;background:#121212}
+    .font-pirate{font-family:'IM Fell English SC',serif}
+    .bg-pattern{
+      background-color:#121212;
+      background-image:
+        linear-gradient(rgba(18,18,18,.95),rgba(18,18,18,.95)),
+        url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%232a2a2a' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    .btn-primary{ @apply w-full bg-pirate-gold hover:bg-pirate-gold-light text-pirate-dark font-bold py-3 px-4 rounded-lg font-pirate text-xl tracking-wide transition-transform hover:scale-105 }
+    .btn-ghost{ @apply w-full bg-transparent border-2 border-pirate-gold text-pirate-gold hover:bg-pirate-gold hover:text-pirate-dark font-bold py-3 px-4 rounded-lg font-pirate text-xl tracking-wide transition-all duration-300 }
+    .tab-btn.active{ @apply text-pirate-gold }
+    .pill{ @apply bg-pirate-gold/20 px-2 py-1 rounded-full text-xs text-pirate-gold }
+    .card{ @apply bg-pirate-dark-secondary p-4 rounded-lg border border-pirate-gold/20 }
+    /* Поле как на примере: темный фон, мягкий бордер, скругления, иконка слева */
+    .input-wrap{
+      @apply flex items-center gap-2 bg-[#141414] rounded-2xl px-4 py-3 text-pirate-text w-full shadow-inner-gold border border-[#6b572f]/40;
+    }
+    .input-wrap input,.input-wrap textarea{
+      background:transparent!important;border:none!important;outline:none!important;color:#fff;width:100%;
+      font-size:16px; /* disable iOS zoom */
+    }
+    .input-wrap textarea{resize:vertical;min-height:90px}
+    .link-muted{color:#fff;opacity:.85}
+    .link-muted:hover{opacity:1}
+
+    /* Модалки:
+       - Overlay всегда поверх всего (z-индекс огромный).
+       - Шторка сверху (top-sheet), которая перекрывает весь экран.
+       - Панель снизу слайдится вверх (bottom-sheet).
+    */
+    .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:99998; opacity:0; pointer-events:none; transition:opacity .2s; }
+    .overlay.show{ opacity:1; pointer-events:auto; }
+    .top-sheet{ position:fixed; left:0; right:0; top:0; height:100dvh; z-index:99999; display:flex; flex-direction:column; justify-content:flex-end; pointer-events:none; }
+    .bottom-panel{
+      width:100%; max-width:430px; margin:0 auto;
+      background:#1E1E1E; border:1px solid rgba(229,138,45,.3);
+      border-bottom:calc(env(safe-area-inset-bottom)) solid transparent;
+      border-top-left-radius:16px; border-top-right-radius:16px;
+      transform:translateY(100%); transition:transform .28s ease;
+      box-shadow:0 -10px 40px rgba(0,0,0,.6);
+      pointer-events:auto;
+    }
+    .top-sheet.show .bottom-panel{ transform:translateY(0); }
+    .grabber{ width:48px; height:5px; border-radius:9999px; background:#3a3a3a; margin:8px auto 12px; }
+    .panel-body{ padding:16px 20px 20px; }
+    .sheet-title{ @apply font-pirate text-2xl text-pirate-gold-light; }
+    .sheet-actions{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
+    @media (min-width:768px){
+      .bottom-panel{ max-width:520px; }
+    }
+    /* App shell */
+    .shell{ width:100%; max-width:430px; margin:0 auto; height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)); display:flex; flex-direction:column; }
+    @media (min-width:768px){ .shell{ max-width:834px; border-radius:16px; } .grid-ipad-2{ display:grid; grid-template-columns:1fr 1fr; gap:20px; } }
+  </style>
+<script src="https://puc.poecdn.net/authenticated_preview_page/syncedState.bd4eeeb8e8e02052ee92.js"></script></head>
+<body>
+  <div id="app" class="shell bg-pirate-dark border-x border-pirate-dark-secondary shadow-2xl shadow-black/50 overflow-hidden">
+    <!-- Header -->
+    <header class="bg-pirate-dark-secondary/60 backdrop-blur-sm px-4 py-3 flex justify-between items-center border-b border-pirate-gold/10">
+      <div class="flex items-center gap-3">
+        <i class="fa-solid fa-skull-crossbones text-pirate-gold text-2xl"></i>
+        <h1 class="font-pirate text-2xl">Pirate Lair</h1>
+      </div>
+      <button id="new-all-btn" class="hidden ip:flex items-center gap-2 text-xs uppercase tracking-wide px-3 py-1 rounded bg-pirate-gold/10 text-pirate-gold border border-pirate-gold/30 hover:bg-pirate-gold hover:text-pirate-dark transition">
+        <i class="fa-solid fa-wand-magic-sparkles"></i><span>Quick Create</span>
+      </button>
+    </header>
+
+    <!-- Main -->
+    <main id="main-content" class="flex-1 overflow-y-auto bg-pattern">
+      <!-- TAB 1 -->
+      <div id="tab1-content" class="p-5 space-y-8 tab-pane active">
+        <section>
+          <h2 class="font-pirate text-3xl text-pirate-gold-light mb-1">Plan Yer Adventure</h2>
+          <p class="link-muted mb-6">Choose theme and set the date.</p>
+
+          <div class="space-y-6 grid-ipad-2">
+            <div>
+              <label class="font-bold block mb-2">Choose a Theme:</label>
+              <div class="grid grid-cols-2 gap-4" id="theme-grid">
+                <button data-theme="Treasure Island" class="theme-card relative rounded-lg overflow-hidden border-2 border-pirate-gold">
+                  <img class="absolute inset-0 w-full h-full object-cover" alt="treasure island" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 600'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='0' y1='0' y2='1'%3E%3Cstop stop-color='%230a1720'/%3E%3Cstop offset='1' stop-color='%231e3a5f'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='800' height='600' fill='url(%23g)'/%3E%3Ccircle cx='630' cy='120' r='60' fill='%23f6d365'/%3E%3Cpath d='M0 470 Q200 430 400 470 T800 470 L800 600 L0 600 Z' fill='%233a2a16'/%3E%3Ctext x='40' y='80' fill='%23ffd37a' font-size='38' font-family='serif' %3ETreasure Island%3C/text%3E%3C/svg%3E">
+                  <div class="absolute inset-0 bg-black/40"></div>
+                  <div class="relative p-3 flex flex-col justify-end h-32">
+                    <h3 class="font-pirate text-white text-lg">Treasure Island</h3>
+                  </div>
+                </button>
+
+                <button data-theme="Cursed Cove" class="theme-card relative rounded-lg overflow-hidden border-2 border-transparent hover:border-pirate-gold transition">
+                  <img class="absolute inset-0 w-full h-full object-cover" alt="cove" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 600'%3E%3Crect width='800' height='600' fill='%230b0f1a'/%3E%3Cpath d='M0 420 Q200 370 400 420 T800 420 L800 600 L0 600 Z' fill='%231b2838'/%3E%3Ccircle cx='120' cy='110' r='80' fill='%232b3b52'/%3E%3Ctext x='36' y='80' fill='%23b1c8ff' font-size='38' font-family='serif' %3ECursed Cove%3C/text%3E%3C/svg%3E">
+                  <div class="absolute inset-0 bg-black/45"></div>
+                  <div class="relative p-3 flex flex-col justify-end h-32">
+                    <h3 class="font-pirate text-white text-lg">Cursed Cove</h3>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label class="font-bold block mb-2">Set the Date:</label>
+              <div class="input-wrap">
+                <i class="fa-solid fa-calendar-days text-pirate-text-muted"></i>
+                <input type="text" id="party-date" value="October 31, 2025 - 7:00 PM" placeholder="Select date and time">
+              </div>
+            </div>
+
+            <div class="ip:col-span-2">
+              <button id="create-plan-btn" class="btn-primary">Create Party Plan</button>
+            </div>
+
+            <div id="plan-preview" class="hidden card ip:col-span-2">
+              <h3 class="font-pirate text-2xl text-pirate-gold-light mb-2">Party Plan</h3>
+              <ul id="plan-list" class="list-disc list-inside space-y-1 text-sm"></ul>
+              <div class="grid grid-cols-2 gap-3 mt-4">
+                <button id="download-plan-btn" class="bg-pirate-dark text-white border border-pirate-gold/40 rounded-lg py-2 hover:bg-pirate-gold/10">
+                  <i class="fa-solid fa-file-arrow-down mr-2"></i>Save TXT
+                </button>
+                <button id="new-plan-item" class="bg-pirate-gold/10 text-pirate-gold border border-pirate-gold/40 rounded-lg py-2 hover:bg-pirate-gold/20">
+                  <i class="fa-solid fa-plus mr-2"></i>Add Schedule Item
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="border-t border-pirate-gold/20 my-8"></div>
+
+        <section id="guest-outfits-section">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="font-pirate text-3xl text-pirate-gold-light mb-1">Crew's Attire</h2>
+              <p class="link-muted">Design outfits and share look lists.</p>
+            </div>
+            <button id="open-add-outfit" class="bg-pirate-gold text-pirate-dark rounded-full w-11 h-11 flex items-center justify-center text-xl shadow"><i class="fa-solid fa-plus"></i></button>
+          </div>
+
+          <div id="outfit-list" class="space-y-4 mt-4">
+            <div class="card flex items-center justify-between">
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full border-2 border-pirate-gold/50 overflow-hidden">
+                  <img alt="avatar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect width='100%25' height='100%25' fill='%231E1E1E'/%3E%3Ccircle cx='40' cy='28' r='14' fill='%23E58A2D'/%3E%3Crect x='14' y='48' width='52' height='22' rx='11' fill='%23FBBF24'/%3E%3C/svg%3E">
+                </div>
+                <div>
+                  <h4 class="font-bold">Anne Bonny</h4>
+                  <p class="text-sm link-muted">Outfit: The Swashbuckler</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <button class="text-pirate-gold text-xl outfit-edit"><i class="fa-solid fa-shirt"></i></button>
+                <button class="link-muted hover:text-red-400 outfit-remove"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+            </div>
+
+            <div class="card flex items-center justify-between">
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full border-2 border-pirate-gold/50 overflow-hidden">
+                  <img alt="avatar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect width='100%25' height='100%25' fill='%231E1E1E'/%3E%3Ccircle cx='40' cy='28' r='14' fill='%23FBBF24'/%3E%3Crect x='14' y='48' width='52' height='22' rx='11' fill='%23E58A2D'/%3E%3C/svg%3E">
+                </div>
+                <div>
+                  <h4 class="font-bold">Calico Jack</h4>
+                  <p class="text-sm link-muted">Outfit: The Buccaneer</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <button class="text-pirate-gold text-xl outfit-edit"><i class="fa-solid fa-shirt"></i></button>
+                <button class="link-muted hover:text-red-400 outfit-remove"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <button id="share-looks-btn" class="btn-ghost mt-6">Share Look Lists</button>
+        </section>
+      </div>
+
+      <!-- TAB 2 -->
+      <div id="tab2-content" class="p-5 space-y-8 tab-pane hidden">
+        <section id="invitations-section">
+          <div class="flex justify-between items-center">
+            <div>
+              <h2 class="font-pirate text-3xl text-pirate-gold-light mb-1">Summon Yer Crew</h2>
+              <p class="link-muted">Invitation and treasure map.</p>
+            </div>
+            <button id="open-new-invite" class="bg-pirate-gold text-pirate-dark rounded-full w-11 h-11 flex items-center justify-center text-xl shadow"><i class="fa-solid fa-plus"></i></button>
+          </div>
+
+          <div id="invitation-card" class="bg-pirate-dark-secondary border-2 border-pirate-gold/30 rounded-lg p-4 mb-6 shadow-lg shadow-black/30">
+            <div class="border-4 border-pirate-gold rounded-md p-4 bg-yellow-50/5">
+              <h3 id="invite-title" class="font-pirate text-2xl text-center">Ye Be Summoned!</h3>
+              <div class="text-center my-4">
+                <i class="fa-solid fa-anchor text-4xl link-muted"></i>
+              </div>
+              <p id="invite-body" class="text-center text-sm font-serif">Join Cap'n [Your Name] for a grand adventure on [Party Date]. Treasure, grog, and glory await!</p>
+              <p id="invite-loc" class="text-center text-xs mt-4 link-muted font-serif">[Location Details]</p>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div class="input-wrap"><i class="fa-solid fa-heading text-pirate-text-muted"></i><input id="invite-title-input" placeholder="Invitation title" value="Ye Be Summoned!"></div>
+            <div class="input-wrap"><i class="fa-solid fa-align-left text-pirate-text-muted"></i><textarea id="invite-body-input" placeholder="Invitation body">Join Cap'n [Your Name] for a grand adventure on [Party Date]. Treasure, grog, and glory await!</textarea></div>
+            <div class="input-wrap"><i class="fa-solid fa-location-dot text-pirate-text-muted"></i><input id="invite-loc-input" placeholder="Location details" value="[Location Details]"></div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 mt-4 mb-2">
+            <button id="apply-invite-btn" class="bg-pirate-dark-secondary border border-pirate-gold/20 text-white py-3 rounded-lg"><i class="fa-solid fa-pen-to-square mr-2"></i>Apply Text</button>
+            <button id="style-invite-btn" class="bg-pirate-dark-secondary border border-pirate-gold/20 text-white py-3 rounded-lg"><i class="fa-solid fa-palette mr-2"></i>Change Style</button>
+          </div>
+          <div class="grid grid-cols-2 gap-4 mb-6">
+            <button id="download-invite-btn" class="bg-pirate-dark border border-pirate-gold/40 text-white py-3 rounded-lg hover:bg-pirate-gold/10"><i class="fa-solid fa-file-arrow-down mr-2"></i>Save PNG</button>
+            <button id="duplicate-invite-btn" class="bg-pirate-gold/10 border border-pirate-gold/40 text-pirate-gold py-3 rounded-lg hover:bg-pirate-gold/20"><i class="fa-solid fa-clone mr-2"></i>New Variation</button>
+          </div>
+
+          <button class="btn-primary" id="send-invites-btn">Send Digital Invites</button>
+        </section>
+
+        <div class="border-t border-pirate-gold/20 my-8"></div>
+
+        <section id="treasure-map-section">
+          <div class="flex items-center justify-between">
+            <h2 class="font-pirate text-3xl text-pirate-gold-light mb-4">Chart the Course</h2>
+            <button id="open-marker-modal" class="bg-pirate-gold text-pirate-dark rounded-full w-11 h-11 flex items-center justify-center text-xl shadow"><i class="fa-solid fa-plus"></i></button>
+          </div>
+
+          <div id="map-preview" class="relative rounded-lg overflow-hidden border-2 border-pirate-gold/30 aspect-video mb-4">
+            <img id="map-image" class="w-full h-full object-cover" alt="map" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 675'%3E%3Cdefs%3E%3CradialGradient id='p' cx='0.5' cy='0.4' r='0.7'%3E%3Cstop offset='0' stop-color='%23f5e6c5'/%3E%3Cstop offset='1' stop-color='%23d2b48c'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect width='1200' height='675' fill='url(%23p)'/%3E%3Cpath d='M80 120 Q260 60 380 140 T700 160 T1080 120' stroke='%238b5e34' stroke-width='6' fill='none' stroke-dasharray='10 10'/%3E%3Ctext x='560' y='340' font-family='serif' font-size='64' fill='%238b5e34' transform='rotate(-12 560 340)'>X</text%3E%3Ccircle cx='160' cy='520' r='70' fill='none' stroke='%238b5e34' stroke-width='5'/%3E%3Ctext x='140' y='525' font-family='serif' font-size='22' fill='%238b5e34'%3EHarbor%3C/text%3E%3C/svg%3E">
+            <div class="absolute inset-0 bg-black/25 flex items-center justify-center pointer-events-none">
+              <p class="font-pirate text-white text-2xl drop-shadow-lg">Map Preview</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <button id="shuffle-map-btn" class="bg-pirate-dark-secondary border border-pirate-gold/20 text-white py-3 rounded-lg hover:border-pirate-gold/40"><i class="fa-solid fa-shuffle mr-2"></i>Shuffle Route</button>
+            <button id="print-map-btn" class="bg-pirate-gold/10 border border-pirate-gold/40 text-pirate-gold py-3 rounded-lg hover:bg-pirate-gold/20"><i class="fa-solid fa-print mr-2"></i>Download Map PNG</button>
+          </div>
+        </section>
+      </div>
+
+      <!-- TAB 3 -->
+      <div id="tab3-content" class="p-5 space-y-8 tab-pane hidden">
+        <section id="host-mode-section">
+          <h2 class="font-pirate text-3xl text-pirate-gold-light mb-1">Captain's Deck</h2>
+          <p class="link-muted mb-6">Live controls and scoreboard.</p>
+
+          <div class="bg-pirate-dark-secondary p-4 rounded-lg border border-pirate-gold/30 text-center mb-4">
+            <div class="grid grid-cols-3 gap-2 mb-3">
+              <div class="input-wrap"><i class="fa-solid fa-hourglass-start text-pirate-text-muted"></i><input id="timer-min" type="number" min="0" value="15" placeholder="Min" inputmode="numeric"></div>
+              <div class="input-wrap"><i class="fa-solid fa-hourglass-end text-pirate-text-muted"></i><input id="timer-sec" type="number" min="0" max="59" value="0" placeholder="Sec" inputmode="numeric"></div>
+              <button id="apply-timer" class="bg-pirate-dark border border-pirate-gold/40 text-white rounded-lg font-semibold">Apply</button>
+            </div>
+            <p class="link-muted text-sm">Next Quest Begins In:</p>
+            <p id="countdown" class="font-mono text-5xl font-bold tracking-widest my-2">15:00</p>
+            <div class="w-full bg-pirate-dark rounded-full h-2.5 overflow-hidden"><div id="progress" class="bg-pirate-gold h-2.5 rounded-full" style="width:0%"></div></div>
+            <div class="flex gap-3 justify-center mt-4">
+              <button id="start-timer" class="px-3 py-2 rounded bg-pirate-gold text-pirate-dark font-bold hover:bg-pirate-gold-light"><i class="fa-solid fa-play mr-2"></i>Start</button>
+              <button id="pause-timer" class="px-3 py-2 rounded bg-pirate-dark border border-pirate-gold/40 text-white hover:bg-pirate-gold/10"><i class="fa-solid fa-pause mr-2"></i>Pause</button>
+              <button id="reset-timer" class="px-3 py-2 rounded bg-pirate-dark border border-pirate-gold/40 text-white hover:bg-pirate-gold/10"><i class="fa-solid fa-rotate-left mr-2"></i>Reset</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 mb-6">
+            <div class="card text-center">
+              <i class="fa-solid fa-music text-pirate-gold text-3xl mb-2"></i>
+              <h4 class="font-bold">Music Controls</h4>
+              <p class="text-xs link-muted">Sea Shanties</p>
+              <div class="flex justify-center gap-3 mt-3">
+                <button class="px-3 py-1 rounded bg-pirate-dark border border-pirate-gold/40 text-white hover:bg-pirate-gold/10"><i class="fa-solid fa-backward"></i></button>
+                <button id="toggle-sfx" class="px-3 py-1 rounded bg-pirate-gold text-pirate-dark hover:bg-pirate-gold-light"><i class="fa-solid fa-volume-high"></i></button>
+                <button class="px-3 py-1 rounded bg-pirate-dark border border-pirate-gold/40 text-white hover:bg-pirate-gold/10"><i class="fa-solid fa-forward"></i></button>
+              </div>
+            </div>
+            <div class="card text-center">
+              <i class="fa-solid fa-scroll text-pirate-gold text-3xl mb-2"></i>
+              <h4 class="font-bold">Event Prompts</h4>
+              <p id="next-prompt" class="text-xs link-muted">Next: Toast</p>
+              <div class="flex justify-center gap-3 mt-3">
+                <button id="new-prompt-btn" class="px-3 py-1 rounded bg-pirate-gold/10 border border-pirate-gold/40 text-pirate-gold hover:bg-pirate-gold/20"><i class="fa-solid fa-wand-magic-sparkles mr-2"></i>New Prompt</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="border-t border-pirate-gold/20 my-8"></div>
+
+        <section id="scoreboard-section">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="font-pirate text-3xl text-pirate-gold-light">Scoreboard</h2>
+            <button id="open-add-team" class="bg-pirate-gold text-pirate-dark rounded-full w-11 h-11 flex items-center justify-center text-xl shadow"><i class="fa-solid fa-plus"></i></button>
+          </div>
+          <div id="scoreboard" class="space-y-3">
+            <div class="flex items-center bg-pirate-gold/90 p-3 rounded-lg">
+              <span class="font-bold text-pirate-dark text-lg w-6">1.</span>
+              <div class="w-10 h-10 rounded-full mx-3 border-2 border-pirate-dark overflow-hidden">
+                <img alt="team" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect width='100%25' height='100%25' fill='%230000'/%3E%3Ccircle cx='40' cy='40' r='22' fill='%23FBBF24'/%3E%3C/svg%3E">
+              </div>
+              <span class="font-bold text-pirate-dark flex-1">Blackheart's Crew</span>
+              <div class="flex items-center gap-2">
+                <button class="px-2 py-1 rounded bg-pirate-dark text-pirate-gold"><i class="fa-solid fa-minus"></i></button>
+                <span class="font-pirate text-xl text-pirate-dark w-16 text-center score">150</span>
+                <button class="px-2 py-1 rounded bg-pirate-dark text-pirate-gold"><i class="fa-solid fa-plus"></i></button>
+              </div>
+            </div>
+            <div class="flex items-center bg-pirate-dark-secondary p-3 rounded-lg">
+              <span class="font-bold link-muted text-lg w-6">2.</span>
+              <div class="w-10 h-10 rounded-full mx-3 border-2 border-pirate-gold/50 overflow-hidden">
+                <img alt="team" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect width='100%25' height='100%25' fill='%231E1E1E'/%3E%3Ccircle cx='40' cy='40' r='22' fill='%23E58A2D'/%3E%3C/svg%3E">
+              </div>
+              <span class="font-bold flex-1">The Sea Serpents</span>
+              <div class="flex items-center gap-2">
+                <button class="px-2 py-1 rounded bg-pirate-dark text-pirate-gold"><i class="fa-solid fa-minus"></i></button>
+                <span class="font-pirate text-xl text-pirate-gold-light w-16 text-center score">125</span>
+                <button class="px-2 py-1 rounded bg-pirate-dark text-pirate-gold"><i class="fa-solid fa-plus"></i></button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- TAB 4 -->
+      <div id="tab4-content" class="p-5 space-y-8 tab-pane hidden">
+        <section id="quests-section">
+          <div class="flex justify-between items-center mb-6">
+            <div>
+              <h2 class="font-pirate text-3xl text-pirate-gold-light">The Quests</h2>
+              <p class="link-muted">Design challenges for yer crew.</p>
+            </div>
+            <button id="open-add-quest" class="bg-pirate-gold text-pirate-dark rounded-full w-12 h-12 flex items-center justify-center text-2xl shadow"><i class="fa-solid fa-plus"></i></button>
+          </div>
+
+          <div id="quests-list" class="space-y-4">
+            <div class="quest-card bg-pirate-dark-secondary rounded-lg overflow-hidden border border-pirate-gold/20">
+              <div class="w-full h-32 bg-[url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 800 200%22%3E%3Crect width=%22800%22 height=%22200%22 fill=%22%231b2838%22/%3E%3Ctext x=%2240%22 y=%22120%22 fill=%22%23b1c8ff%22 font-size=%2230%22 font-family=%22serif%22%3EPirate Scene%3C/text%3E%3C/svg%3E')] bg-cover bg-center"></div>
+              <div class="p-4">
+                <h3 class="font-pirate text-xl">The Lost Spyglass</h3>
+                <p class="text-sm link-muted mt-1 mb-3">A scavenger hunt to find the Captain's missing spyglass. Clues are hidden around the party area.</p>
+                <div class="flex items-center gap-2">
+                  <span class="pill">Scavenger Hunt</span>
+                  <span class="pill">15 Mins</span>
+                  <button class="ml-auto link-muted hover:text-pirate-gold quest-photo"><i class="fa-solid fa-camera"></i></button>
+                  <button class="link-muted hover:text-pirate-gold quest-edit"><i class="fa-solid fa-pen"></i></button>
+                  <button class="text-red-400 hover:text-red-300 quest-remove"><i class="fa-solid fa-trash"></i></button>
+                </div>
+              </div>
+            </div>
+
+            <div class="quest-card bg-pirate-dark-secondary rounded-lg overflow-hidden border border-pirate-gold/20">
+              <div class="w-full h-32 bg-[url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 800 200%22%3E%3Crect width=%22800%22 height=%22200%22 fill=%22%230b0f1a%22/%3E%3Ctext x=%2240%22 y=%22120%22 fill=%22%23FBBF24%22 font-size=%2230%22 font-family=%22serif%22%3ERope Knot%3C/text%3E%3C/svg%3E')] bg-cover bg-center"></div>
+              <div class="p-4">
+                <h3 class="font-pirate text-xl">Cannonball Toss</h3>
+                <p class="text-sm link-muted mt-1 mb-3">Teams toss “cannonballs” (black water balloons) into buckets from a distance.</p>
+                <div class="flex items-center gap-2">
+                  <span class="pill">Physical Challenge</span>
+                  <span class="pill">10 Mins</span>
+                  <button class="ml-auto link-muted hover:text-pirate-gold quest-photo"><i class="fa-solid fa-camera"></i></button>
+                  <button class="link-muted hover:text-pirate-gold quest-edit"><i class="fa-solid fa-pen"></i></button>
+                  <button class="text-red-400 hover:text-red-300 quest-remove"><i class="fa-solid fa-trash"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <nav class="bg-pirate-dark-secondary border-t border-pirate-gold/10 grid grid-cols-4">
+      <button class="tab-btn active p-4 flex flex-col items-center justify-center gap-1 text-pirate-gold" data-tab="tab1-content"><i class="fa-solid fa-scroll text-xl"></i><span class="text-xs font-bold">Plan</span></button>
+      <button class="tab-btn p-4 flex flex-col items-center justify-center gap-1 text-white/70 hover:text-pirate-gold" data-tab="tab2-content"><i class="fa-solid fa-envelope-open-text text-xl"></i><span class="text-xs font-bold">Invites</span></button>
+      <button class="tab-btn p-4 flex flex-col items-center justify-center gap-1 text-white/70 hover:text-pirate-gold" data-tab="tab3-content"><i class="fa-solid fa-flag-checkered text-xl"></i><span class="text-xs font-bold">Host</span></button>
+      <button class="tab-btn p-4 flex flex-col items-center justify-center gap-1 text-white/70 hover:text-pirate-gold" data-tab="tab4-content"><i class="fa-solid fa-map-location-dot text-xl"></i><span class="text-xs font-bold">Quests</span></button>
+    </nav>
+  </div>
+
+  <!-- GLOBAL OVERLAY + TOP SHEET (модалки сверху экрана, панель выезжает снизу) -->
+  <div id="overlay" class="overlay"></div>
+
+  <!-- Outfit -->
+  <div id="sheet-outfit" class="top-sheet">
+    <div class="bottom-panel">
+      <div class="grabber"></div>
+      <div class="panel-body">
+        <div class="flex items-center justify-between">
+          <h3 class="sheet-title">Add Crew Outfit</h3>
+          <button class="close-sheet link-muted text-2xl" data-target="sheet-outfit">×</button>
+        </div>
+        <div class="space-y-3 mt-3">
+          <div class="input-wrap"><i class="fa-solid fa-user text-pirate-text-muted"></i><input id="m-outfit-name" placeholder="Guest name"></div>
+          <div class="input-wrap"><i class="fa-solid fa-shirt text-pirate-text-muted"></i><input id="m-outfit-look" placeholder="Outfit title (e.g., Corsair)"></div>
+        </div>
+        <div class="sheet-actions">
+          <button class="close-sheet bg-pirate-dark border border-pirate-gold/40 text-white rounded-lg py-2" data-target="sheet-outfit">Cancel</button>
+          <button id="m-outfit-save" class="bg-pirate-gold text-pirate-dark rounded-lg py-2 font-bold">Add</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Team -->
+  <div id="sheet-team" class="top-sheet">
+    <div class="bottom-panel">
+      <div class="grabber"></div>
+      <div class="panel-body">
+        <div class="flex items-center justify-between">
+          <h3 class="sheet-title">Add Team</h3>
+          <button class="close-sheet link-muted text-2xl" data-target="sheet-team">×</button>
+        </div>
+        <div class="space-y-3 mt-3">
+          <div class="input-wrap"><i class="fa-solid fa-people-group text-pirate-text-muted"></i><input id="m-team-name" placeholder="Team name"></div>
+        </div>
+        <div class="sheet-actions">
+          <button class="close-sheet bg-pirate-dark border border-pirate-gold/40 text-white rounded-lg py-2" data-target="sheet-team">Cancel</button>
+          <button id="m-team-save" class="bg-pirate-gold text-pirate-dark rounded-lg py-2 font-bold">Add</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quest -->
+  <div id="sheet-quest" class="top-sheet">
+    <div class="bottom-panel">
+      <div class="grabber"></div>
+      <div class="panel-body">
+        <div class="flex items-center justify-between">
+          <h3 class="sheet-title">Create New Quest</h3>
+          <button class="close-sheet link-muted text-2xl" data-target="sheet-quest">×</button>
+        </div>
+        <div class="space-y-3 mt-3">
+          <div class="input-wrap"><i class="fa-solid fa-signature text-pirate-text-muted"></i><input id="m-quest-title" placeholder="Quest title"></div>
+          <div class="input-wrap"><i class="fa-solid fa-align-left text-pirate-text-muted"></i><textarea id="m-quest-desc" placeholder="Short description and rules"></textarea></div>
+          <div class="input-wrap"><i class="fa-solid fa-tags text-pirate-text-muted"></i><input id="m-quest-tags" placeholder="Tags (comma)"></div>
+          <div class="input-wrap"><i class="fa-regular fa-clock text-pirate-text-muted"></i><input id="m-quest-duration" placeholder="Duration (mins)"></div>
+        </div>
+        <div class="sheet-actions">
+          <button class="close-sheet bg-pirate-dark border border-pirate-gold/40 text-white rounded-lg py-2" data-target="sheet-quest">Cancel</button>
+          <button id="m-quest-save" class="bg-pirate-gold text-pirate-dark rounded-lg py-2 font-bold">Add Quest</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Invite -->
+  <div id="sheet-invite" class="top-sheet">
+    <div class="bottom-panel">
+      <div class="grabber"></div>
+      <div class="panel-body">
+        <div class="flex items-center justify-between">
+          <h3 class="sheet-title">New Invitation</h3>
+          <button class="close-sheet link-muted text-2xl" data-target="sheet-invite">×</button>
+        </div>
+        <div class="space-y-3 mt-3">
+          <div class="input-wrap"><i class="fa-solid fa-heading text-pirate-text-muted"></i><input id="m-invite-title" placeholder="Title" value="Ye Be Summoned!"></div>
+          <div class="input-wrap"><i class="fa-solid fa-align-left text-pirate-text-muted"></i><textarea id="m-invite-body" placeholder="Body">Join Cap'n [Your Name] for a grand adventure on [Party Date]. Treasure, grog, and glory await!</textarea></div>
+          <div class="input-wrap"><i class="fa-solid fa-location-dot text-pirate-text-muted"></i><input id="m-invite-loc" placeholder="Location" value="[Location Details]"></div>
+        </div>
+        <div class="sheet-actions">
+          <button class="close-sheet bg-pirate-dark border border-pirate-gold/40 text-white rounded-lg py-2" data-target="sheet-invite">Cancel</button>
+          <button id="m-invite-save" class="bg-pirate-gold text-pirate-dark rounded-lg py-2 font-bold">Apply</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Marker -->
+  <div id="sheet-marker" class="top-sheet">
+    <div class="bottom-panel">
+      <div class="grabber"></div>
+      <div class="panel-body">
+        <div class="flex items-center justify-between">
+          <h3 class="sheet-title">Add Map Marker</h3>
+          <button class="close-sheet link-muted text-2xl" data-target="sheet-marker">×</button>
+        </div>
+        <div class="space-y-3 mt-3">
+          <div class="input-wrap"><i class="fa-solid fa-location-crosshairs text-pirate-text-muted"></i><input id="m-marker-name" placeholder="Marker name (e.g., Dock)"></div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="input-wrap"><i class="fa-solid fa-hashtag text-pirate-text-muted"></i><input id="m-marker-x" placeholder="X 100..1100" inputmode="numeric"></div>
+            <div class="input-wrap"><i class="fa-solid fa-hashtag text-pirate-text-muted"></i><input id="m-marker-y" placeholder="Y 100..600" inputmode="numeric"></div>
+          </div>
+        </div>
+        <div class="sheet-actions">
+          <button class="close-sheet bg-pirate-dark border border-pirate-gold/40 text-white rounded-lg py-2" data-target="sheet-marker">Cancel</button>
+          <button id="m-marker-save" class="bg-pirate-gold text-pirate-dark rounded-lg py-2 font-bold">Add Marker</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SFX -->
+  <script>
+    const SFX = (() => {
+      let ctx;
+      const makeCtx = () => (ctx ||= new (window.AudioContext || window.webkitAudioContext)());
+      function blip(freq=440, dur=0.12){
+        try{const c=makeCtx(),o=c.createOscillator(),g=c.createGain();o.type='triangle';o.frequency.value=freq;g.gain.setValueAtTime(0.0001,c.currentTime);g.gain.exponentialRampToValueAtTime(0.2,c.currentTime+0.01);g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+dur);o.connect(g).connect(c.destination);o.start();o.stop(c.currentTime+dur);}catch(e){}
+      }
+      function whoosh(){
+        try{const c=makeCtx(),n=c.createBufferSource(),b=c.createBuffer(1,c.sampleRate*0.5,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);n.buffer=b;const g=c.createGain();g.gain.value=.2;n.connect(g).connect(c.destination);n.start();}catch(e){}
+      }
+      return { blip, whoosh };
+    })();
+  </script>
+
+  <!-- App Logic -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Tabs
+      const tabButtons = document.querySelectorAll('.tab-btn');
+      const tabPanes = document.querySelectorAll('.tab-pane');
+      tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const tabId = button.dataset.tab;
+          tabButtons.forEach(btn => { btn.classList.remove('active','text-pirate-gold'); btn.classList.add('text-white/70'); });
+          button.classList.add('active','text-pirate-gold'); button.classList.remove('text-white/70');
+          tabPanes.forEach(pane => pane.id === tabId ? (pane.classList.remove('hidden'), pane.classList.add('active')) : (pane.classList.add('hidden'), pane.classList.remove('active')));
+          document.getElementById('main-content').scrollTop = 0;
+          SFX.whoosh();
+        });
+      });
+
+      // Sheets (overlay + top sheet + bottom panel)
+      const overlay = document.getElementById('overlay');
+      function openSheet(id){ overlay.classList.add('show'); document.getElementById(id).classList.add('show'); }
+      function closeSheetById(id){ document.getElementById(id).classList.remove('show'); overlay.classList.remove('show'); }
+      document.querySelectorAll('.close-sheet').forEach(btn=>{
+        btn.addEventListener('click', e=>closeSheetById(e.currentTarget.dataset.target));
+      });
+      overlay.addEventListener('click', ()=> {
+        document.querySelectorAll('.top-sheet.show').forEach(s=>s.classList.remove('show'));
+        overlay.classList.remove('show');
+      });
+
+      // Theme + Plan
+      let selectedTheme = 'Treasure Island';
+      document.querySelectorAll('.theme-card').forEach(card=>{
+        card.addEventListener('click', ()=>{
+          document.querySelectorAll('.theme-card').forEach(c=>c.classList.remove('border-pirate-gold','border-2'));
+          card.classList.add('border-pirate-gold','border-2');
+          selectedTheme = card.dataset.theme;
+          SFX.blip(640);
+        });
+      });
+
+      const planPreview = document.getElementById('plan-preview');
+      const planList = document.getElementById('plan-list');
+      function buildPlan(){
+        const date = document.getElementById('party-date').value || 'TBD';
+        const items = [
+          `Theme: ${selectedTheme}`,
+          `Date & time: ${date}`,
+          'Setup (1h before): Decor, sound check, photo zone',
+          'Arrival (00:00): Greeting & pirate name tags',
+          'Game 1 (00:10): Treasure Warm‑up',
+          'Toast (00:30): Captain’s welcome',
+          'Main Quest (00:40): Map & Clues',
+          'Contest (01:15): Best Costume',
+          'Finale (01:40): Loot & Photos'
+        ];
+        planList.innerHTML = items.map(i=>`<li>${i}</li>`).join('');
+        planPreview.classList.remove('hidden');
+      }
+      document.getElementById('create-plan-btn').addEventListener('click', buildPlan);
+      document.getElementById('download-plan-btn').addEventListener('click', ()=>{
+        const text = Array.from(planList.querySelectorAll('li')).map(li=>`• ${li.textContent}`).join('\n');
+        const blob = new Blob([text], {type:'text/plain'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='PirateLair_Plan.txt'; a.click(); URL.revokeObjectURL(a.href); SFX.blip(420);
+      });
+      document.getElementById('new-plan-item').addEventListener('click', ()=>openSheet('sheet-quest'));
+
+      // Outfits
+      const outfitList = document.getElementById('outfit-list');
+      function bindOutfitRow(row){
+        row.querySelector('.outfit-edit')?.addEventListener('click', ()=>{
+          const name = row.querySelector('h4').textContent;
+          const v = prompt(`Edit outfit for ${name}:`, row.querySelector('p').textContent.replace('Outfit: ',''));
+          if(v) row.querySelector('p').textContent = 'Outfit: ' + v;
+          SFX.blip(600);
+        });
+        row.querySelector('.outfit-remove')?.addEventListener('click', ()=>{ row.remove(); SFX.blip(300); });
+      }
+      outfitList.querySelectorAll('.card').forEach(bindOutfitRow);
+
+      document.getElementById('open-add-outfit').addEventListener('click', ()=>openSheet('sheet-outfit'));
+      document.getElementById('m-outfit-save').addEventListener('click', ()=>{
+        const name = document.getElementById('m-outfit-name').value.trim();
+        const look = document.getElementById('m-outfit-look').value.trim() || 'New Corsair';
+        if(!name) return;
+        const div = document.createElement('div');
+        div.className = 'card flex items-center justify-between';
+        div.innerHTML = `
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full border-2 border-pirate-gold/50 overflow-hidden">
+              <img alt="avatar" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect width='100%25' height='100%25' fill='%231E1E1E'/%3E%3Ccircle cx='40' cy='28' r='14' fill='%23E58A2D'/%3E%3Crect x='14' y='48' width='52' height='22' rx='11' fill='%23E58A2D'/%3E%3C/svg%3E"/>
+            </div>
+            <div>
+              <h4 class="font-bold">${name}</h4>
+              <p class="text-sm link-muted">Outfit: ${look}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <button class="text-pirate-gold text-xl outfit-edit"><i class="fa-solid fa-shirt"></i></button>
+            <button class="link-muted hover:text-red-400 outfit-remove"><i class="fa-solid fa-xmark"></i></button>
+          </div>`;
+        outfitList.appendChild(div); bindOutfitRow(div);
+        document.querySelectorAll('#m-outfit-name,#m-outfit-look').forEach(i=>i.value='');
+        closeSheetById('sheet-outfit'); SFX.blip(720);
+      });
+
+      document.getElementById('share-looks-btn').addEventListener('click', ()=>{
+        const looks = Array.from(outfitList.querySelectorAll('.card')).map(c=>{
+          const n = c.querySelector('h4').textContent;
+          const o = c.querySelector('p').textContent;
+          return `${n}: ${o}`;
+        }).join('\n');
+        const blob = new Blob([looks], {type:'text/plain'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'PirateLair_Looks.txt'; a.click(); URL.revokeObjectURL(a.href); SFX.blip(500);
+      });
+
+      // Invitations
+      const inviteTitle = document.getElementById('invite-title');
+      const inviteBody = document.getElementById('invite-body');
+      const inviteLoc  = document.getElementById('invite-loc');
+
+      document.getElementById('apply-invite-btn').addEventListener('click', ()=>{
+        inviteTitle.textContent = document.getElementById('invite-title-input').value || 'Invitation';
+        inviteBody.textContent  = document.getElementById('invite-body-input').value || '';
+        inviteLoc.textContent   = document.getElementById('invite-loc-input').value || '';
+        SFX.blip(650);
+      });
+      document.getElementById('open-new-invite').addEventListener('click', ()=>openSheet('sheet-invite'));
+      document.getElementById('m-invite-save').addEventListener('click', ()=>{
+        document.getElementById('invite-title-input').value = document.getElementById('m-invite-title').value;
+        document.getElementById('invite-body-input').value  = document.getElementById('m-invite-body').value;
+        document.getElementById('invite-loc-input').value   = document.getElementById('m-invite-loc').value;
+        closeSheetById('sheet-invite'); document.getElementById('apply-invite-btn').click();
+      });
+
+      document.getElementById('style-invite-btn').addEventListener('click', ()=>{
+        const card = document.getElementById('invitation-card').firstElementChild;
+        const styles = ['bg-yellow-50/5','bg-amber-100/10','bg-emerald-100/10','bg-sky-100/10'];
+        let idx = parseInt(card.dataset.style||'0',10); idx = (idx+1)%styles.length;
+        card.dataset.style = String(idx);
+        card.className = `border-4 border-pirate-gold rounded-md p-4 ${styles[idx]}`;
+        SFX.blip(780);
+      });
+
+      // Download invite as PNG
+      document.getElementById('download-invite-btn').addEventListener('click', ()=>{
+        const canvas = document.createElement('canvas'); canvas.width = 1080; canvas.height = 1350;
+        const ctx = canvas.getContext('2d');
+        const grd = ctx.createRadialGradient(540, 540, 200, 540, 675, 900);
+        grd.addColorStop(0, '#f5e6c5'); grd.addColorStop(1, '#d2b48c');
+        ctx.fillStyle = grd; ctx.fillRect(0,0,1080,1350);
+        ctx.lineWidth = 24; ctx.strokeStyle = '#E58A2D'; ctx.strokeRect(48,48,1080-96,1350-96);
+        ctx.fillStyle = '#111827'; ctx.font = '64px serif'; ctx.textAlign='center';
+        ctx.fillText(inviteTitle.textContent, 540, 260);
+        ctx.font = '32px serif'; wrapText(ctx, inviteBody.textContent, 540, 420, 880, 42);
+        ctx.font = '24px serif'; ctx.fillStyle = '#374151'; wrapText(ctx, inviteLoc.textContent, 540, 980, 880, 36);
+        canvas.toBlob(b=>{ const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download='PirateLair_Invite.png'; a.click(); URL.revokeObjectURL(a.href); });
+        SFX.blip(460);
+      });
+
+      document.getElementById('duplicate-invite-btn').addEventListener('click', ()=>{
+        inviteTitle.textContent = inviteTitle.textContent + '!';
+        SFX.blip(560);
+      });
+
+      document.getElementById('send-invites-btn').addEventListener('click', ()=>{
+        alert('Invites prepared! Share your saved PNG via your messenger/email.');
+        SFX.whoosh();
+      });
+
+      // Map
+      document.getElementById('open-marker-modal').addEventListener('click', ()=>openSheet('sheet-marker'));
+      document.getElementById('m-marker-save').addEventListener('click', ()=>{
+        const name = (document.getElementById('m-marker-name').value || 'Spot').replace(/</g,'&lt;');
+        let x = parseInt(document.getElementById('m-marker-x').value)||Math.floor(100+Math.random()*1000);
+        let y = parseInt(document.getElementById('m-marker-y').value)||Math.floor(100+Math.random()*500);
+        x = Math.min(1100,Math.max(100,x)); y = Math.min(600,Math.max(100,y));
+        const img = document.getElementById('map-image');
+        let svg = decodeURIComponent(img.src.split(',')[1] || '');
+        if(!svg.startsWith('<svg')){
+          svg = "<?xml version='1.0'?><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 675'><defs><radialGradient id='p' cx='0.5' cy='0.4' r='0.7'><stop offset='0' stop-color='#f5e6c5'/><stop offset='1' stop-color='#d2b48c'/></radialGradient></defs><rect width='1200' height='675' fill='url(#p)'/><path d='M80 120 Q260 60 380 140 T700 160 T1080 120' stroke='#8b5e34' stroke-width='6' fill='none' stroke-dasharray='10 10'/></svg>";
+        }
+        svg = svg.replace('</svg>', `<circle cx='${x}' cy='${y}' r='10' fill='#E58A2D'/><text x='${x+12}' y='${y+6}' font-family='serif' font-size='18' fill='#8b5e34'>${name}</text></svg>`);
+        img.src = 'data:image/svg+xml,' + encodeURIComponent(svg);
+        closeSheetById('sheet-marker'); SFX.blip(740);
+      });
+
+      document.getElementById('shuffle-map-btn').addEventListener('click', ()=>{
+        const hue = Math.floor(20 + Math.random()*40);
+        const svg = `<?xml version="1.0"?><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 675'>
+          <defs><radialGradient id='p' cx='0.5' cy='0.4' r='0.7'>
+          <stop offset='0' stop-color='hsl(${hue},70%,85%)'/><stop offset='1' stop-color='hsl(${hue},45%,65%)'/></radialGradient></defs>
+          <rect width='1200' height='675' fill='url(#p)'/>
+          <path d='M80 120 Q260 60 380 140 T700 160 T1080 120' stroke='#8b5e34' stroke-width='6' fill='none' stroke-dasharray='10 10'/>
+          <text x='${500+Math.random()*200}' y='${300+Math.random()*100}' font-family='serif' font-size='64' fill='#8b5e34' transform='rotate(-12)'>X</text>
+        </svg>`;
+        document.getElementById('map-image').src = 'data:image/svg+xml,' + encodeURIComponent(svg);
+        SFX.whoosh();
+      });
+
+      document.getElementById('print-map-btn').addEventListener('click', async ()=>{
+        const img = document.getElementById('map-image');
+        const svgText = decodeURIComponent(img.src.split(',')[1] || '');
+        const blob = new Blob([svgText], {type:'image/svg+xml;charset=utf-8'});
+        const url = URL.createObjectURL(blob);
+        const raster = await svgToPng(url, 1200, 675);
+        URL.revokeObjectURL(url);
+        const a = document.createElement('a'); a.href = raster; a.download = 'PirateLair_Map.png'; a.click();
+      });
+
+      // Host timer
+      let timer=null, total=900, left=900;
+      const countdownEl = document.getElementById('countdown');
+      const progressEl = document.getElementById('progress');
+      function renderTimer(){ const m=String(Math.floor(left/60)).padStart(2,'0'); const s=String(left%60).padStart(2,'0'); countdownEl.textContent=`${m}:${s}`; progressEl.style.width=`${100*(1-left/total)}%`; }
+      renderTimer();
+      document.getElementById('apply-timer').addEventListener('click', ()=>{ const min=parseInt(document.getElementById('timer-min').value)||0; const sec=Math.min(59,Math.max(0,parseInt(document.getElementById('timer-sec').value)||0)); total=left=Math.max(1,min*60+sec); renderTimer(); SFX.blip(520); });
+      document.getElementById('start-timer').addEventListener('click', ()=>{ if(timer) return; timer=setInterval(()=>{ left=Math.max(0,left-1); renderTimer(); if(left===0){ clearInterval(timer); timer=null; alert('Time! Next quest starts.'); } },1000); SFX.blip(700); });
+      document.getElementById('pause-timer').addEventListener('click', ()=>{ if(timer){ clearInterval(timer); timer=null; SFX.blip(400); } });
+      document.getElementById('reset-timer').addEventListener('click', ()=>{ if(timer){ clearInterval(timer); timer=null;} left=total; renderTimer(); SFX.blip(520); });
+
+      // Prompts
+      const prompts = ['Next: Toast of the Captain','Mini-game: Knot Tying','Challenge: Sea Shanty Sing-off','Photo Time: Wanted Posters','Break: Rum & Grog Station','Quest: Decode the Map Riddle'];
+      document.getElementById('new-prompt-btn').addEventListener('click', ()=>{ document.getElementById('next-prompt').textContent=prompts[Math.floor(Math.random()*prompts.length)]; SFX.blip(680); });
+
+      // Scoreboard
+      const scoreboard = document.getElementById('scoreboard');
+      function bindScoreRow(row){
+        const btns = row.querySelectorAll('button'); const scoreEl = row.querySelector('.score');
+        btns[0].addEventListener('click', ()=>{ scoreEl.textContent=Math.max(0,parseInt(scoreEl.textContent)-5); SFX.blip(360); sortScores(); });
+        btns[1].addEventListener('click', ()=>{ scoreEl.textContent=parseInt(scoreEl.textContent)+5; SFX.blip(620); sortScores(); });
+      }
+      function sortScores(){
+        const rows=[...scoreboard.children]; rows.sort((a,b)=>parseInt(b.querySelector('.score').textContent)-parseInt(a.querySelector('.score').textContent));
+        rows.forEach((r,i)=>{ r.querySelector('span').textContent=(i+1)+'.'; scoreboard.appendChild(r); r.classList.toggle('bg-pirate-gold/90',i===0); r.classList.toggle('bg-pirate-dark-secondary',i!==0); });
+      }
+      scoreboard.querySelectorAll(':scope > div').forEach(bindScoreRow);
+
+      document.getElementById('open-add-team').addEventListener('click', ()=>openSheet('sheet-team'));
+      document.getElementById('m-team-save').addEventListener('click', ()=>{
+        const name=(document.getElementById('m-team-name').value||'').trim(); if(!name) return;
+        const row=document.createElement('div'); row.className='flex items-center bg-pirate-dark-secondary p-3 rounded-lg';
+        row.innerHTML=`<span class="font-bold link-muted text-lg w-6">0.</span>
+          <div class="w-10 h-10 rounded-full mx-3 border-2 border-pirate-gold/50 overflow-hidden">
+            <img alt="team" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Crect width='100%25' height='100%25' fill='%231E1E1E'/%3E%3Ccircle cx='40' cy='40' r='22' fill='%23FBBF24'/%3E%3C/svg%3E"/>
+          </div>
+          <span class="font-bold flex-1">${name}</span>
+          <div class="flex items-center gap-2">
+            <button class="px-2 py-1 rounded bg-pirate-dark text-pirate-gold"><i class="fa-solid fa-minus"></i></button>
+            <span class="font-pirate text-xl text-pirate-gold-light w-16 text-center score">0</span>
+            <button class="px-2 py-1 rounded bg-pirate-dark text-pirate-gold"><i class="fa-solid fa-plus"></i></button>
+          </div>`;
+        scoreboard.appendChild(row); bindScoreRow(row); sortScores(); SFX.blip(760);
+        document.getElementById('m-team-name').value=''; closeSheetById('sheet-team');
+      });
+
+      // Quests
+      const questsList = document.getElementById('quests-list');
+      function bindQuestCard(card){
+        card.querySelector('.quest-edit')?.addEventListener('click', ()=>{
+          const titleEl=card.querySelector('h3'); const descEl=card.querySelector('p');
+          const t=prompt('Quest title:', titleEl.textContent)||titleEl.textContent;
+          const d=prompt('Quest description:', descEl.textContent)||descEl.textContent;
+          titleEl.textContent=t; descEl.textContent=d; SFX.blip(640);
+        });
+        card.querySelector('.quest-remove')?.addEventListener('click', ()=>{ card.remove(); SFX.blip(320); });
+        card.querySelector('.quest-photo')?.addEventListener('click', ()=>{ const header=card.firstElementChild; header.style.filter='saturate(1.2) contrast(1.1)'; header.style.backgroundBlendMode='multiply'; SFX.whoosh(); });
+      }
+      questsList.querySelectorAll('.quest-card').forEach(bindQuestCard);
+
+      document.getElementById('open-add-quest').addEventListener('click', ()=>openSheet('sheet-quest'));
+      document.getElementById('m-quest-save').addEventListener('click', ()=>{
+        const t=document.getElementById('m-quest-title').value.trim()||'New Quest';
+        const d=document.getElementById('m-quest-desc').value.trim()||'Describe the challenge, rules, and victory condition.';
+        const tags=(document.getElementById('m-quest-tags').value.trim()||'Custom').split(',').map(s=>s.trim()).filter(Boolean);
+        const dur=document.getElementById('m-quest-duration').value.trim()||'10';
+        const card=document.createElement('div');
+        card.className='quest-card bg-pirate-dark-secondary rounded-lg overflow-hidden border border-pirate-gold/20';
+        card.innerHTML=`
+          <div class="w-full h-32 bg-[url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 800 200%22%3E%3Crect width=%22800%22 height=%22200%22 fill=%22%23222%22/%3E%3Ctext x=%2240%22 y=%22120%22 fill=%22%23E58A2D%22 font-size=%2230%22 font-family=%22serif%22%3ECustom Quest%3C/text%3E%3C/svg%3E')] bg-cover bg-center"></div>
+          <div class="p-4">
+            <h3 class="font-pirate text-xl">${t}</h3>
+            <p class="text-sm link-muted mt-1 mb-3">${d}</p>
+            <div class="flex items-center gap-2">
+              ${tags.map(tag=>`<span class='pill'>${tag}</span>`).join('')}
+              <span class='pill'>${dur} Mins</span>
+              <button class="ml-auto link-muted hover:text-pirate-gold quest-photo"><i class="fa-solid fa-camera"></i></button>
+              <button class="link-muted hover:text-pirate-gold quest-edit"><i class="fa-solid fa-pen"></i></button>
+              <button class="text-red-400 hover:text-red-300 quest-remove"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>`;
+        questsList.prepend(card); bindQuestCard(card);
+        ['m-quest-title','m-quest-desc','m-quest-tags','m-quest-duration'].forEach(id=>document.getElementById(id).value='');
+        closeSheetById('sheet-quest'); SFX.blip(800);
+      });
+
+      // Quick Create
+      document.getElementById('new-all-btn')?.addEventListener('click', ()=>{ buildPlan(); document.querySelector('[data-tab="tab2-content"]').click(); });
+
+      // Helpers
+      function wrapText(ctx, text, x, y, maxWidth, lineHeight){
+        const words=text.split(' '); let line='';
+        for(let n=0;n<words.length;n++){ const test=line+words[n]+' '; if(ctx.measureText(test).width>maxWidth && n>0){ ctx.fillText(line,x,y); line=words[n]+' '; y+=lineHeight; } else { line=test; } }
+        ctx.fillText(line,x,y);
+      }
+      function svgToPng(url, w, h){
+        return new Promise(res=>{ const img=new Image(); img.onload=()=>{ const c=document.createElement('canvas'); c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h); res(c.toDataURL('image/png')); }; img.src=url; });
+      }
+    });
+  </script>
+
+
+</body></html>
